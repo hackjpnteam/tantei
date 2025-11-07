@@ -13,7 +13,7 @@ export default function Home() {
         <div className="text-center mb-20">
           <div className="mb-8 flex justify-center items-center">
             <img 
-              src="/n-minus-logo-final.png" 
+              src="/docotan-logo.png" 
               alt="DOCOTAN探偵学校" 
               className="h-32 w-auto object-contain"
             />

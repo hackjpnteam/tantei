@@ -36,7 +36,7 @@ export default function Navigation() {
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center">
               <img 
-                src="/n-minus-logo-final.png" 
+                src="/docotan-logo.png" 
                 alt="DOCOTAN探偵スクール" 
                 className="h-12 w-auto object-contain"
               />
@@ -80,7 +80,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center">
             <img 
-              src="/n-minus-logo-final.png" 
+              src="/docotan-logo.png" 
               alt="DOCOTAN探偵スクール" 
               className="h-12 w-auto object-contain"
             />

@@ -56,7 +56,7 @@ export default function WorkingNavigation() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center">
             <img 
-              src="/n-minus-logo-final.png" 
+              src="/docotan-logo.png" 
               alt="DOCOTAN探偵学校" 
               className="h-12 w-auto object-contain"
             />
