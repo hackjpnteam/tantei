@@ -1,6 +1,10 @@
-'use client';
-
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '警察OB向け短期認定プログラム | DOCOTAN探偵スクール',
+  description: '退職警察官の民間転身支援。2日間集中：民間探偵業の法令・契約・調査技術の差分理解。修了証発行。',
+};
 
 export default function PolicePage() {
   return (

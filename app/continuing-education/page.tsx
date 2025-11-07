@@ -1,6 +1,10 @@
-'use client';
-
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '継続教育・年次アップデート研修 | DOCOTAN探偵スクール',
+  description: 'DCD認定者向け継続教育プログラム。最新の法改正/技術（AI・SNS・位置情報）を年1回キャッチアップ。',
+};
 
 export default function ContinuingEducationPage() {
   return (

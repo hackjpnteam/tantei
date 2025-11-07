@@ -1,6 +1,10 @@
-'use client';
-
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '認定制度 | DOCOTAN探偵スクール',
+  description: 'DCD-Basic/DCD-Pro認定制度について。修了後の審査を経てDOCOTAN Certified Detective認定を付与。プロフィールにバッジ表示・認定番号付与。',
+};
 
 export default function CertificationPage() {
   return (

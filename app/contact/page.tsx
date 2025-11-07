@@ -13,15 +13,42 @@ export default function ContactPage() {
     e.preventDefault();
     setLoading(true);
 
-    // デモ用の処理
-    setTimeout(() => {
-      alert('お問い合わせを受け付けました。2営業日以内にご連絡いたします。');
-      setName('');
-      setEmail('');
-      setSubject('');
-      setMessage('');
+    try {
+      // フォームAPIにPOSTを試行
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+
+      if (response.ok) {
+        alert('お問い合わせを受け付けました。2営業日以内にご連絡いたします。');
+        setName('');
+        setEmail('');
+        setSubject('');
+        setMessage('');
+      } else {
+        throw new Error('API error');
+      }
+    } catch (error) {
+      // フォールバック: mailto:でメール送信
+      const mailtoSubject = encodeURIComponent(`[DOCOTAN探偵スクール] ${subject || 'お問い合わせ'}`);
+      const mailtoBody = encodeURIComponent(
+        `お名前: ${name}\n` +
+        `メールアドレス: ${email}\n` +
+        `件名: ${subject}\n\n` +
+        `メッセージ:\n${message}`
+      );
+      
+      const mailtoLink = `mailto:info@docotan-detective.jp?subject=${mailtoSubject}&body=${mailtoBody}`;
+      window.location.href = mailtoLink;
+      
+      alert('メールアプリが開きます。送信を完了してください。');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
