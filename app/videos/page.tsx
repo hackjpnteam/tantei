@@ -43,7 +43,38 @@ export default function VideosPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">動画一覧</h1>
+      <h1 className="text-3xl font-bold mb-6">コース一覧</h1>
+      <div className="mb-8 bg-blue-50 rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4">コース体系</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="bg-white rounded-lg p-6 shadow-md">
+            <h3 className="text-xl font-bold mb-3">基礎コース</h3>
+            <p className="text-gray-600 mb-4">法律・倫理・聞き込み・尾行・情報収集の基礎</p>
+            <div className="text-sm text-gray-500 mb-2">期間: 2ヶ月</div>
+            <div className="text-2xl font-bold text-blue-600">99,000円(税込)</div>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-md">
+            <h3 className="text-xl font-bold mb-3">プロコース</h3>
+            <p className="text-gray-600 mb-4">実地OJT・報告書・案件受託訓練</p>
+            <div className="text-sm text-gray-500 mb-2">期間: 3ヶ月</div>
+            <div className="text-2xl font-bold text-blue-600">198,000円(税込)</div>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-md">
+            <h3 className="text-xl font-bold mb-3">オプション（上級）</h3>
+            <p className="text-gray-600 mb-4">ドローン/車両追跡/AI解析ツール</p>
+            <div className="text-sm text-gray-500 mb-2">期間: 随時</div>
+            <div className="text-2xl font-bold text-blue-600">33,000円〜</div>
+          </div>
+        </div>
+        <div className="text-sm text-gray-600">
+          <h4 className="font-semibold mb-2">特記事項:</h4>
+          <ul className="list-disc list-inside space-y-1">
+            <li>オンライン動画＋現場OJTのハイブリッド</li>
+            <li>講師は現役探偵/警察OB/法務の専門家</li>
+            <li>修了後にDCD-Basic / DCD-Pro認定受験可</li>
+          </ul>
+        </div>
+      </div>
       
       <div className="mb-8 space-y-4">
         <div className="flex gap-4">
@@ -52,7 +83,7 @@ export default function VideosPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="動画タイトルやタグで検索"
+              placeholder="コース名やタグで検索"
               className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -89,7 +120,7 @@ export default function VideosPage() {
       ) : (
         <>
           <div className="mb-4 text-sm text-gray-600">
-            {videos.length}件の動画が見つかりました
+            {videos.length}件のコースが見つかりました
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

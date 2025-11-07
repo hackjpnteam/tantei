@@ -26,22 +26,23 @@ export default function ContactPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">お問い合わせ</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">無料説明会・お問い合わせ</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">お気軽にご連絡ください</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">ご相談はオンライン可。法人研修・取材もこちらから。</h2>
           <p className="text-gray-600 mb-6">
-            ご不明な点やご要望がございましたら、以下のフォームからお問い合わせください。
-            通常2営業日以内にご返信いたします。
+            DOCOTAN探偵スクールへのご質問、コースの詳細、無料説明会の予約など、お気軽にお問い合わせください。
+            通常1営業日以内にご返信いたします。
           </p>
           
           <div className="bg-gray-50 p-6 rounded-lg">
             <h3 className="font-semibold text-gray-900 mb-3">連絡先情報</h3>
             <div className="space-y-2 text-sm text-gray-600">
-              <p>hackjpn, inc.</p>
-              <p>営業時間: 平日 9:00-18:00</p>
-              <p>Email: team@hackjpn.com</p>
+              <p>DOCOTAN探偵スクール 事務局</p>
+              <p>相談受付: 平日 10:00-18:00 / 土日 10:00-16:00</p>
+              <p>Email: info@docotan-detective.jp</p>
+              <p>電話: 03-XXXX-XXXX（無料相談専用）</p>
             </div>
           </div>
         </div>
@@ -88,10 +89,12 @@ export default function ContactPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">選択してください</option>
-                <option value="technical">技術的な問題</option>
-                <option value="account">アカウントについて</option>
-                <option value="content">コンテンツについて</option>
-                <option value="billing">料金について</option>
+                <option value="briefing">無料説明会の予約</option>
+                <option value="course">コースについて</option>
+                <option value="certification">認定制度について</option>
+                <option value="police">警察OBプログラム</option>
+                <option value="corporate">法人研修</option>
+                <option value="press">取材・メディア関係</option>
                 <option value="other">その他</option>
               </select>
             </div>
@@ -107,7 +110,7 @@ export default function ContactPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="詳細をご記入ください"
+                placeholder="ご相談内容、希望日時、オンライン/対面の希望などをご記入ください"
               />
             </div>
 
