@@ -4,7 +4,12 @@ export interface IUser extends Document {
   name: string;
   email: string;
   passwordHash: string;
-  role: 'user' | 'admin';
+  roles: ('student' | 'instructor' | 'admin' | 'police_ob')[];
+  policeObVerified?: boolean;
+  obOnboarding?: {
+    trainingDone?: boolean;
+    pledgeAccepted?: boolean;
+  };
   createdAt: Date;
   lastAccess?: Date;
   profile?: {
@@ -33,10 +38,18 @@ const UserSchema = new Schema<IUser>({
     type: String,
     required: true
   },
-  role: {
+  roles: [{
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
+    enum: ['student', 'instructor', 'admin', 'police_ob'],
+    default: 'student'
+  }],
+  policeObVerified: {
+    type: Boolean,
+    default: false
+  },
+  obOnboarding: {
+    trainingDone: { type: Boolean, default: false },
+    pledgeAccepted: { type: Boolean, default: false }
   },
   lastAccess: {
     type: Date,

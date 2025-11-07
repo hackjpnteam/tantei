@@ -57,7 +57,7 @@ export default function WorkingNavigation() {
           <Link href="/" className="flex items-center">
             <img 
               src="/n-minus-logo-final.png" 
-              alt="Nマイナス by 上場の法則" 
+              alt="DOCOTAN探偵学校" 
               className="h-12 w-auto object-contain"
             />
           </Link>

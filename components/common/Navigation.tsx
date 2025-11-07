@@ -37,7 +37,7 @@ export default function Navigation() {
             <Link href="/" className="flex items-center">
               <img 
                 src="/n-minus-logo-final.png" 
-                alt="Nマイナス by 上場の法則" 
+                alt="DOCOTAN探偵スクール" 
                 className="h-12 w-auto object-contain"
               />
             </Link>
@@ -53,9 +53,10 @@ export default function Navigation() {
 
   const navItems = [
     { href: '/', label: 'ホーム', icon: FaHome },
-    { href: '/instructors', label: 'ゲスト', icon: FaUsers },
-    { href: '/videos', label: '動画', icon: FaPlay },
-    { href: '/members', label: '会員一覧', icon: FaUserFriends, authRequired: true },
+    { href: '/instructors', label: '講師', icon: FaUsers },
+    { href: '/videos', label: 'コース', icon: FaPlay },
+    { href: '/certification', label: '認定制度', icon: FaChartBar },
+    { href: '/contact', label: 'お問い合わせ', icon: FaUserFriends },
   ] as Array<{
     href: string;
     label: string;
@@ -80,7 +81,7 @@ export default function Navigation() {
           <Link href="/" className="flex items-center">
             <img 
               src="/n-minus-logo-final.png" 
-              alt="Nマイナス by 上場の法則" 
+              alt="DOCOTAN探偵スクール" 
               className="h-12 w-auto object-contain"
             />
           </Link>
