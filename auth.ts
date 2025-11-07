@@ -59,7 +59,7 @@ export const authConfig: NextAuthConfig = {
             return null;
           }
 
-          console.log("👤 User found:", user.email, "Role:", user.role);
+          console.log("👤 User found:", user.email, "Role:", (user as any).roles?.includes('admin') ? 'admin' : 'user');
 
           const isPasswordValid = await bcrypt.compare(
             credentials.password as string, 
@@ -76,7 +76,7 @@ export const authConfig: NextAuthConfig = {
             id: (user as any)._id.toString(),
             email: user.email,
             name: user.name,
-            role: user.role || 'user',
+            role: (user as any).roles?.includes('admin') ? 'admin' : 'user' || 'user',
           };
         } catch (error) {
           console.error("💥 Auth error:", error);
@@ -198,7 +198,7 @@ export const authConfig: NextAuthConfig = {
         token.userId = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.role = user.role || 'user';
+        token.role = (user as any).roles?.includes('admin') ? 'admin' : 'user' || 'user';
         token.picture = user.image;
         
         // For Google OAuth, find MongoDB user
@@ -279,7 +279,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = (token.userId as string) || token.sub || '';
         session.user.email = (token.email as string) || '';
         session.user.name = (token.name as string) || '';
-        session.user.role = (token.role as string) || 'user';
+        session.(user as any).roles?.includes('admin') ? 'admin' : 'user' = (token.role as string) || 'user';
         
         if (token.picture) {
           session.user.image = token.picture as string;
@@ -289,7 +289,7 @@ export const authConfig: NextAuthConfig = {
           id: session.user.id,
           email: session.user.email,
           name: session.user.name,
-          role: session.user.role,
+          role: session.(user as any).roles?.includes('admin') ? 'admin' : 'user',
           image: session.user.image
         });
       } else {

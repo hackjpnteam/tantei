@@ -58,7 +58,7 @@ export async function authenticateUser(email: string, password: string): Promise
       id: (user as any)._id.toString(),
       email: user.email,
       name: user.name,
-      role: user.role || 'user',
+      role: (user as any).roles?.includes('admin') ? 'admin' : 'user',
     };
   } catch (error) {
     console.error('Authentication error:', error);
@@ -71,7 +71,7 @@ export function createSessionToken(user: User): string {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: user.role || 'user',
+    role: (user as any).roles?.includes('admin') ? 'admin' : 'user',
   };
 
   return jwt.sign(payload, JWT_SECRET, {
