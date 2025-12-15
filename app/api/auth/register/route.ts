@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
     await user.save();
 
     return NextResponse.json(
-      { 
+      {
         message: 'アカウントが作成されました',
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          roles: user.roles
         }
       },
       { status: 201 }

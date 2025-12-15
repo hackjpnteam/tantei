@@ -35,6 +35,12 @@ export async function DELETE(
 
     // Use raw MongoDB to bypass schema validation cache
     const db = mongoose.connection.db;
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 500 }
+      );
+    }
     const usersCollection = db.collection('users');
 
     const targetUser = await usersCollection.findOne({

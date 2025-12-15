@@ -21,7 +21,8 @@ export async function getCurrentUser() {
           id: (user as any)._id.toString(),
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.roles?.includes('superadmin') ? 'superadmin' :
+                user.roles?.includes('admin') ? 'admin' : 'user',
           createdAt: user.createdAt,
           profile: user.profile || {}
         };
@@ -46,12 +47,13 @@ export async function getUserById(userId: string) {
         id: (user as any)._id.toString(),
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.roles?.includes('superadmin') ? 'superadmin' :
+              user.roles?.includes('admin') ? 'admin' : 'user',
         createdAt: user.createdAt,
         profile: user.profile || {}
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting user by ID from MongoDB:', error);
@@ -85,7 +87,8 @@ export async function updateUserProfile(userId: string, profileData: any) {
         id: (user as any)._id.toString(),
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.roles?.includes('superadmin') ? 'superadmin' :
+              user.roles?.includes('admin') ? 'admin' : 'user',
         createdAt: user.createdAt,
         profile: user.profile || {}
       };
@@ -109,7 +112,8 @@ export async function getAllUsers() {
       id: (user as any)._id.toString(),
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.roles?.includes('superadmin') ? 'superadmin' :
+            user.roles?.includes('admin') ? 'admin' : 'user',
       createdAt: user.createdAt,
       profile: user.profile || {}
     }));

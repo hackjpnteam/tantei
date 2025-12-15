@@ -176,8 +176,8 @@ export async function verifyAdminAuth(request?: NextRequest): Promise<AdminAuthR
     
     console.log('🔍 [AUTH-ADMIN] User lookup result:', {
       found: !!currentUser,
-      hasRole: currentUser?.role,
-      isAdmin: currentUser?.role === 'admin'
+      hasRoles: currentUser?.roles,
+      isAdmin: currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('superadmin')
     });
     
     if (!currentUser) {
@@ -189,8 +189,8 @@ export async function verifyAdminAuth(request?: NextRequest): Promise<AdminAuthR
       };
     }
     
-    if (currentUser.role !== 'admin') {
-      console.log('❌ [AUTH-ADMIN] User is not admin:', currentUser.role);
+    if (!currentUser.roles?.includes('admin') && !currentUser.roles?.includes('superadmin')) {
+      console.log('❌ [AUTH-ADMIN] User is not admin:', currentUser.roles);
       return {
         success: false,
         error: 'Admin access required',

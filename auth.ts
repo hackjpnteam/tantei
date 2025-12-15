@@ -76,7 +76,7 @@ export const authConfig: NextAuthConfig = {
             id: (user as any)._id.toString(),
             email: user.email,
             name: user.name,
-            role: (user as any).roles?.includes('admin') ? 'admin' : 'user' || 'user',
+            role: (user as any).roles?.includes('admin') ? 'admin' : 'user',
           };
         } catch (error) {
           console.error("💥 Auth error:", error);
@@ -198,7 +198,7 @@ export const authConfig: NextAuthConfig = {
         token.userId = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.role = (user as any).roles?.includes('admin') ? 'admin' : 'user' || 'user';
+        token.role = (user as any).roles?.includes('admin') ? 'admin' : 'user';
         token.picture = user.image;
         
         // For Google OAuth, find MongoDB user
@@ -220,9 +220,10 @@ export const authConfig: NextAuthConfig = {
             });
             
             if (mongoUser) {
-              console.log('✅ JWT callback - Found MongoDB user:', mongoUser.email, 'Role:', mongoUser.role);
+              console.log('✅ JWT callback - Found MongoDB user:', mongoUser.email, 'Roles:', mongoUser.roles);
               token.userId = (mongoUser as any)._id.toString();
-              token.role = mongoUser.role || 'user';
+              token.role = mongoUser.roles?.includes('superadmin') ? 'superadmin' :
+                           mongoUser.roles?.includes('admin') ? 'admin' : 'user';
               token.name = mongoUser.name || user.name;
             } else {
               console.log('❌ JWT callback - MongoDB user not found for:', user.email);
@@ -349,7 +350,7 @@ export const authConfig: NextAuthConfig = {
             return true;
           }
 
-          console.log('✅ Google user found in MongoDB:', mongoUser.email, 'Role:', mongoUser.role);
+          console.log('✅ Google user found in MongoDB:', mongoUser.email, 'Roles:', mongoUser.roles);
           return true;
           
         } catch (error) {

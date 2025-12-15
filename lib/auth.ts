@@ -24,7 +24,7 @@ interface User {
   email: string;
   name: string;
   passwordHash: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'superadmin';
   createdAt: Date;
   profile?: {
     company?: string;
@@ -112,7 +112,7 @@ const sessions = loadSessions();
 globalForAuth.users = users;
 globalForAuth.sessions = sessions;
 
-export function createUser(email: string, name: string, password: string, role: 'user' | 'admin' = 'user'): User | null {
+export function createUser(email: string, name: string, password: string, role: 'user' | 'admin' | 'superadmin' = 'user'): User | null {
   if (getUserByEmailSync(email)) {
     return null; // User already exists
   }
@@ -131,7 +131,7 @@ export function createUser(email: string, name: string, password: string, role: 
   return user;
 }
 
-export async function createUserAsync(email: string, name: string, password: string, role: 'user' | 'admin' = 'user'): Promise<User | null> {
+export async function createUserAsync(email: string, name: string, password: string, role: 'user' | 'admin' | 'superadmin' = 'user'): Promise<User | null> {
   // Check if user already exists
   const existingUser = await getUserByEmail(email);
   if (existingUser) {
@@ -160,7 +160,8 @@ export async function createUserAsync(email: string, name: string, password: str
       email: mongoUser.email,
       name: mongoUser.name,
       passwordHash: mongoUser.passwordHash,
-      role: mongoUser.role,
+      role: mongoUser.roles?.includes('superadmin') ? 'superadmin' :
+            mongoUser.roles?.includes('admin') ? 'admin' : 'user',
       createdAt: mongoUser.createdAt || new Date(),
       profile: mongoUser.profile
     };
@@ -193,7 +194,8 @@ export async function getUserByEmail(email: string): Promise<User | null> {
         email: mongoUser.email,
         name: mongoUser.name,
         passwordHash: mongoUser.passwordHash,
-        role: mongoUser.role,
+        role: mongoUser.roles?.includes('superadmin') ? 'superadmin' :
+              mongoUser.roles?.includes('admin') ? 'admin' : 'user',
         createdAt: mongoUser.createdAt || new Date(),
         profile: mongoUser.profile
       };
@@ -247,12 +249,13 @@ export async function getUserFromSession(token: string): Promise<User | null> {
     const mongoUser = await User.findById(userId).lean();
     
     if (mongoUser) {
-      const user = {
+      const user: User = {
         id: mongoUser._id.toString(),
         email: mongoUser.email,
         name: mongoUser.name,
         passwordHash: mongoUser.passwordHash,
-        role: mongoUser.role,
+        role: (mongoUser.roles?.includes('superadmin') ? 'superadmin' :
+              mongoUser.roles?.includes('admin') ? 'admin' : 'user') as 'user' | 'admin' | 'superadmin',
         createdAt: mongoUser.createdAt || new Date(),
         profile: mongoUser.profile
       };
@@ -343,7 +346,8 @@ export async function updateUserProfile(userId: string, profileData: {
         email: updatedUser.email,
         name: updatedUser.name,
         passwordHash: updatedUser.passwordHash,
-        role: updatedUser.role,
+        role: (updatedUser.roles?.includes('superadmin') ? 'superadmin' :
+              updatedUser.roles?.includes('admin') ? 'admin' : 'user') as 'user' | 'admin' | 'superadmin',
         createdAt: updatedUser.createdAt || new Date(),
         profile: updatedUser.profile
       };

@@ -52,6 +52,12 @@ export async function PATCH(
 
     // Use raw MongoDB to bypass schema validation cache
     const db = mongoose.connection.db;
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 500 }
+      );
+    }
     const usersCollection = db.collection('users');
 
     const targetUser = await usersCollection.findOne({
@@ -80,9 +86,9 @@ export async function PATCH(
     ) || ['student'];
 
     if (role === 'superadmin') {
-      newRoles = [...new Set([...newRoles, 'admin', 'superadmin'])];
+      newRoles = Array.from(new Set([...newRoles, 'admin', 'superadmin']));
     } else if (role === 'admin') {
-      newRoles = [...new Set([...newRoles, 'admin'])];
+      newRoles = Array.from(new Set([...newRoles, 'admin']));
     }
     // 'user' means no admin roles
 

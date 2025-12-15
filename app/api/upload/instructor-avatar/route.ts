@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       email: session.user.email?.toLowerCase() 
     });
     
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || (!currentUser.roles?.includes('admin') && !currentUser.roles?.includes('superadmin'))) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }

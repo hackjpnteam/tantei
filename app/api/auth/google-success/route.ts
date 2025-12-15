@@ -67,14 +67,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/error?error=AccessDenied', request.url));
     }
     
-    console.log('✅ User found in MongoDB:', mongoUser.email, 'Role:', mongoUser.role);
-    
+    console.log('✅ User found in MongoDB:', mongoUser.email, 'Roles:', mongoUser.roles);
+
     // Create auth-simple session token
     const sessionToken = createSessionToken({
       id: (mongoUser as any)._id.toString(),
       email: mongoUser.email,
       name: mongoUser.name,
-      role: mongoUser.role || 'user'
+      role: mongoUser.roles?.includes('superadmin') ? 'superadmin' :
+            mongoUser.roles?.includes('admin') ? 'admin' : 'user'
     });
     
     console.log('✅ Auth-simple session token created:', sessionToken.substring(0, 20) + '...');

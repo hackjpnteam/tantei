@@ -212,7 +212,7 @@ export async function verifyAuthSimple(request?: NextRequest): Promise<AuthResul
     console.log('🔍 [AUTH-SIMPLE] User lookup result:', {
       found: !!currentUser,
       email: currentUser?.email,
-      role: currentUser?.role
+      roles: currentUser?.roles
     });
     
     if (!currentUser) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaSearch, FaFilter } from 'react-icons/fa';
@@ -14,7 +14,7 @@ interface Course {
   durationDays: number;
 }
 
-export default function VideosPage() {
+function VideosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCourse = searchParams.get('course') || '';
@@ -229,5 +229,21 @@ export default function VideosPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 flex items-center justify-center">
+      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
+}
+
+export default function VideosPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <VideosContent />
+    </Suspense>
   );
 }

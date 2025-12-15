@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       user: {
-        _id: dbUser._id.toString(),
-        id: dbUser._id.toString(),
+        _id: (dbUser._id as any).toString(),
+        id: (dbUser._id as any).toString(),
         email: dbUser.email,
         name: dbUser.name,
         roles: dbUser.roles || ['student'],

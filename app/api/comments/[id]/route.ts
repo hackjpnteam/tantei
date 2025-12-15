@@ -140,7 +140,7 @@ export async function DELETE(
     }
     
     const isOwner = comment.user.toString() === (user._id as any).toString();
-    const isAdmin = user.role === 'admin';
+    const isAdmin = user.roles?.includes('admin') || user.roles?.includes('superadmin');
     
     if (!isOwner && !isAdmin) {
       return NextResponse.json(

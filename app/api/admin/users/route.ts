@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prevent removing own superadmin role
-    if (targetUser._id.toString() === authResult.user._id.toString() &&
+    if ((targetUser._id as any).toString() === authResult.user._id.toString() &&
         authResult.user.roles.includes('superadmin') &&
         !roles?.includes('superadmin')) {
       return NextResponse.json(
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       message: 'User updated successfully',
       user: {
-        _id: targetUser._id.toString(),
+        _id: (targetUser._id as any).toString(),
         name: targetUser.name,
         email: targetUser.email,
         roles: targetUser.roles

@@ -14,6 +14,12 @@ export async function POST(request: NextRequest) {
 
     // Use raw MongoDB operation to bypass Mongoose schema validation cache
     const db = mongoose.connection.db;
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 500 }
+      );
+    }
     const usersCollection = db.collection('users');
 
     const user = await usersCollection.findOne({ email: SUPERADMIN_EMAIL });
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Add superadmin and admin roles if not present
     const currentRoles = user.roles || [];
-    const newRoles = [...new Set([...currentRoles, 'superadmin', 'admin'])];
+    const newRoles = Array.from(new Set([...currentRoles, 'superadmin', 'admin']));
 
     await usersCollection.updateOne(
       { email: SUPERADMIN_EMAIL },
