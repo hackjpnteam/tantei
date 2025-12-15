@@ -3,12 +3,5 @@
     "app/api/*/route.ts": {
       "maxDuration": 30
     }
-  },
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/mypage",
-      "permanent": false
-    }
-  ]
+  }
 }
