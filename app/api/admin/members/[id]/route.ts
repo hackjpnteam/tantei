@@ -1,137 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import connectToMongoDB from '@/lib/mongodb';
-import User from '@/models/User';
+import { verifyAdminAuthSimple } from '@/lib/auth-admin-simple';
+import mongoose from 'mongoose';
 
 export const dynamic = 'force-dynamic';
 
-// DELETE member
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
-    
-    if (!session || !session.user) {
+    // Check admin authentication
+    const authResult = await verifyAdminAuthSimple(request);
+    if (!authResult.success) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: authResult.error || 'Authentication failed' },
+        { status: authResult.status || 500 }
       );
     }
 
-    // Check admin role
-    await connectToMongoDB();
-    const currentUser = await User.findOne({ 
-      email: session.user.email?.toLowerCase() 
-    });
-    
-    if (!currentUser || currentUser.role !== 'admin') {
+    const currentUser = authResult.user;
+    const isSuperAdmin = currentUser.roles?.includes('superadmin');
+    const isAdmin = currentUser.roles?.includes('admin');
+
+    // Must be at least admin to delete users
+    if (!isAdmin && !isSuperAdmin) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
       );
     }
 
-    const memberId = params.id;
-    
-    const member = await User.findById(memberId);
-    if (!member) {
+    await connectToMongoDB();
+
+    // Use raw MongoDB to bypass schema validation cache
+    const db = mongoose.connection.db;
+    const usersCollection = db.collection('users');
+
+    const targetUser = await usersCollection.findOne({
+      _id: new mongoose.Types.ObjectId(params.id)
+    });
+
+    if (!targetUser) {
       return NextResponse.json(
-        { error: 'Member not found' },
+        { error: 'User not found' },
         { status: 404 }
       );
     }
 
     // Prevent self-deletion
-    if ((currentUser._id as any).toString() === memberId) {
+    if (targetUser._id.toString() === currentUser._id.toString()) {
       return NextResponse.json(
-        { error: '自分自身を削除することはできません' },
+        { error: 'Cannot delete your own account' },
         { status: 400 }
       );
     }
 
-    // Delete the user
-    await User.findByIdAndDelete(memberId);
-    
-    return NextResponse.json({ 
-      message: 'メンバーを削除しました',
-      deleted: {
-        id: memberId,
-        name: member.name,
-        email: member.email
-      }
-    });
-  } catch (error) {
-    console.error('Error deleting member:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// PATCH member (update role)
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await auth();
-    
-    if (!session || !session.user) {
+    // Only superadmin can delete other admins/superadmins
+    const targetIsAdmin = targetUser.roles?.includes('admin') || targetUser.roles?.includes('superadmin');
+    if (targetIsAdmin && !isSuperAdmin) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Check admin role
-    await connectToMongoDB();
-    const currentUser = await User.findOne({ 
-      email: session.user.email?.toLowerCase() 
-    });
-    
-    if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
+        { error: 'Only superadmin can delete admin users' },
         { status: 403 }
       );
     }
 
-    const memberId = params.id;
-    const { role } = await request.json();
-    
-    const member = await User.findById(memberId);
-    if (!member) {
-      return NextResponse.json(
-        { error: 'Member not found' },
-        { status: 404 }
-      );
-    }
+    await usersCollection.deleteOne({
+      _id: new mongoose.Types.ObjectId(params.id)
+    });
 
-    if (!['admin', 'user'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Invalid role' },
-        { status: 400 }
-      );
-    }
-
-    // Update the user role
-    member.role = role;
-    await member.save();
-    
-    return NextResponse.json({ 
-      message: 'Member role updated successfully',
-      user: {
-        id: (member as any)._id.toString(),
-        name: member.name,
-        email: member.email,
-        role: member.role
-      }
+    return NextResponse.json({
+      success: true,
+      message: 'User deleted successfully'
     });
   } catch (error) {
-    console.error('Error updating member role:', error);
+    console.error('Error deleting user:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -4,12 +4,15 @@ export interface IUser extends Document {
   name: string;
   email: string;
   passwordHash: string;
-  roles: ('student' | 'instructor' | 'admin' | 'police_ob')[];
+  roles: ('student' | 'instructor' | 'admin' | 'superadmin' | 'police_ob')[];
   policeObVerified?: boolean;
   obOnboarding?: {
     trainingDone?: boolean;
     pledgeAccepted?: boolean;
   };
+  subscribedPlan?: string; // Course code
+  planStartDate?: Date;
+  planEndDate?: Date;
   createdAt: Date;
   lastAccess?: Date;
   profile?: {
@@ -40,7 +43,7 @@ const UserSchema = new Schema<IUser>({
   },
   roles: [{
     type: String,
-    enum: ['student', 'instructor', 'admin', 'police_ob'],
+    enum: ['student', 'instructor', 'admin', 'superadmin', 'police_ob'],
     default: 'student'
   }],
   policeObVerified: {
@@ -50,6 +53,19 @@ const UserSchema = new Schema<IUser>({
   obOnboarding: {
     trainingDone: { type: Boolean, default: false },
     pledgeAccepted: { type: Boolean, default: false }
+  },
+  subscribedPlan: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  planStartDate: {
+    type: Date,
+    default: null
+  },
+  planEndDate: {
+    type: Date,
+    default: null
   },
   lastAccess: {
     type: Date,

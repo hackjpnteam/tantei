@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       title: videoData.title,
       description: videoData.description,
       category: videoData.category || 'その他',
+      course: videoData.course || null,
       durationSec: 0, // Default value
       difficulty: 'beginner', // Default value
       thumbnailUrl: videoData.thumbnailUrl || '/default-thumbnail.png',

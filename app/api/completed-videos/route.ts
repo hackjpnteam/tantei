@@ -1,63 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { verifyAuthSimple } from '@/lib/auth-simple';
 import connectToMongoDB from '@/lib/mongodb';
 import CompletedVideo from '@/models/CompletedVideo';
 import Video from '@/models/Video';
-import User from '@/models/User';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🎬 API: Getting completed videos...');
-    const session = await auth();
-    
-    if (!session || !session.user?.email) {
+    const authResult = await verifyAuthSimple(request);
+
+    if (!authResult.success || !authResult.user) {
       console.log('🎬 API: No session or email');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
-    console.log('🎬 API: User email:', session.user.email);
-    
+
+    const user = authResult.user;
+    console.log('🎬 API: User email:', user.email);
+
     await connectToMongoDB();
-    
-    const user = await User.findOne({ email: session.user.email });
-    console.log('🎬 API: User found:', user ? { id: user._id, email: user.email } : 'Not found');
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const completedVideos = await CompletedVideo.find({ user: user._id })
       .populate({
         path: 'video',
-        select: 'title description thumbnailUrl instructor createdAt stats',
-        populate: {
-          path: 'instructor',
-          select: 'name title avatarUrl'
-        }
+        select: 'title description thumbnailUrl instructor createdAt stats'
       })
       .sort({ completedAt: -1 })
       .lean();
 
     console.log('🎬 API: Found completed videos count:', completedVideos.length);
-    console.log('🎬 API: Raw completed videos:', completedVideos.map(cv => ({
-      videoId: cv.video?._id,
-      videoTitle: (cv.video as any)?.title,
-      completedAt: cv.completedAt
-    })));
 
-    const formattedVideos = completedVideos.map(cv => ({
-      ...cv.video,
-      id: cv.video._id.toString(),
-      completedAt: cv.completedAt
-    }));
+    // Filter out entries where video is null (deleted videos)
+    const validCompletedVideos = completedVideos.filter(cv => cv.video != null);
+
+    const formattedVideos = validCompletedVideos.map(cv => {
+      const video = cv.video as any;
+      return {
+        _id: video._id.toString(),
+        id: video._id.toString(),
+        title: video.title,
+        description: video.description,
+        thumbnailUrl: video.thumbnailUrl,
+        instructor: video.instructor, // Already embedded object
+        completedAt: cv.completedAt
+      };
+    });
 
     console.log('🎬 API: Formatted videos:', formattedVideos.length);
 
@@ -77,18 +68,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('🎬 API POST: Marking video as completed...');
-    const session = await auth();
-    
-    if (!session || !session.user?.email) {
+    const authResult = await verifyAuthSimple(request);
+
+    if (!authResult.success || !authResult.user) {
       console.log('🎬 API POST: No session or email');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
-    console.log('🎬 API POST: User email:', session.user.email);
-    
+
+    const user = authResult.user;
+    console.log('🎬 API POST: User email:', user.email);
+
     const { videoId } = await request.json();
     console.log('🎬 API POST: Video ID:', videoId);
 
@@ -101,16 +93,6 @@ export async function POST(request: NextRequest) {
     }
 
     await connectToMongoDB();
-    
-    const user = await User.findOne({ email: session.user.email });
-    console.log('🎬 API POST: User found:', user ? { id: user._id, email: user.email } : 'Not found');
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const video = await Video.findById(videoId);
     console.log('🎬 API POST: Video found:', video ? { id: video._id, title: video.title } : 'Not found');
@@ -164,15 +146,17 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session || !session.user?.email) {
+    const authResult = await verifyAuthSimple(request);
+
+    if (!authResult.success || !authResult.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
+    const user = authResult.user;
+
     const { searchParams } = new URL(request.url);
     const videoId = searchParams.get('videoId');
 
@@ -184,18 +168,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     await connectToMongoDB();
-    
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
-    const result = await CompletedVideo.deleteOne({ 
-      user: user._id, 
-      video: videoId 
+    const result = await CompletedVideo.deleteOne({
+      user: user._id,
+      video: videoId
     });
 
     if (result.deletedCount === 0) {

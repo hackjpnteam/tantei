@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { FaCheckCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -12,32 +11,37 @@ interface CompleteButtonProps {
 }
 
 export default function CompleteButton({ videoId, defaultCompleted = false, onComplete }: CompleteButtonProps) {
-  const { data: session } = useSession();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check if video is already completed
   useEffect(() => {
     const checkCompletionStatus = async () => {
-      if (session?.user) {
-        try {
-          const response = await fetch('/api/completed-videos', {
-            credentials: 'include'
+      try {
+        const response = await fetch('/api/completed-videos', {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          setIsAuthenticated(true);
+          const data = await response.json();
+          const isVideoCompleted = data.videos?.some((v: any) => {
+            const vId = v.id || v._id;
+            return vId === videoId;
           });
-          
-          if (response.ok) {
-            const data = await response.json();
-            const isVideoCompleted = data.videos?.some((v: any) => {
-              const vId = v.id || v._id;
-              return vId === videoId;
-            });
-            setIsCompleted(isVideoCompleted);
+          setIsCompleted(isVideoCompleted);
+        } else if (response.status === 401) {
+          // Not authenticated, check localStorage
+          setIsAuthenticated(false);
+          const localProgress = JSON.parse(localStorage.getItem('videoProgress') || '{}');
+          if (localProgress[videoId]?.status === 'completed') {
+            setIsCompleted(true);
           }
-        } catch (error) {
-          console.error('Error checking completion status:', error);
         }
-      } else {
-        // Check localStorage for non-logged users
+      } catch (error) {
+        console.error('Error checking completion status:', error);
+        // Fallback to localStorage
         const localProgress = JSON.parse(localStorage.getItem('videoProgress') || '{}');
         if (localProgress[videoId]?.status === 'completed') {
           setIsCompleted(true);
@@ -46,7 +50,7 @@ export default function CompleteButton({ videoId, defaultCompleted = false, onCo
     };
 
     checkCompletionStatus();
-  }, [session?.user, videoId]);
+  }, [videoId]);
 
   const handleComplete = async () => {
     if (isCompleted || isLoading) return;
@@ -78,12 +82,12 @@ export default function CompleteButton({ videoId, defaultCompleted = false, onCo
       }
 
       // Save completion to database or localStorage
-      if (session?.user) {
+      if (isAuthenticated) {
         try {
           // Save to completed videos API
           await fetch('/api/completed-videos', {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
@@ -94,7 +98,7 @@ export default function CompleteButton({ videoId, defaultCompleted = false, onCo
           // Save to progress API
           await fetch('/api/progress', {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },

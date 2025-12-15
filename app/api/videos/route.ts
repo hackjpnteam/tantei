@@ -11,24 +11,29 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const course = searchParams.get('course');
     const instructor = searchParams.get('instructor');
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '12');
+    const limit = parseInt(searchParams.get('limit') || '50');
 
     // Build query
     let query: any = {};
-    
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     if (category) {
       query.category = category;
     }
-    
+
+    if (course) {
+      query.course = course;
+    }
+
     if (instructor) {
       query['instructor.name'] = instructor;
     }

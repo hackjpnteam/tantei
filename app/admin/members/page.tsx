@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaUser, FaVideo, FaCheckCircle, FaClock, FaTrophy, FaBook, FaChartLine, FaUsers, FaEdit, FaEye, FaSearch, FaFilter, FaDownload, FaUserShield, FaUserCog, FaTrash } from 'react-icons/fa';
+import { FaUser, FaVideo, FaCheckCircle, FaTrophy, FaBook, FaChartLine, FaUsers, FaEdit, FaEye, FaSearch, FaFilter, FaDownload, FaUserShield, FaUserCog, FaTrash } from 'react-icons/fa';
 import { useSimpleAuth } from '@/lib/useSimpleAuth';
 import toast from 'react-hot-toast';
 
@@ -12,13 +12,14 @@ function MembersContent() {
   const { user, loading: authLoading } = useSimpleAuth(true);
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
-  
+
   const [members, setMembers] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [filterRole, setFilterRole] = useState<'all' | 'user' | 'admin'>(
-    roleParam === 'admin' ? 'admin' : roleParam === 'user' ? 'user' : 'all'
+  const [filterPlan, setFilterPlan] = useState<string>('all');
+  const [filterRole, setFilterRole] = useState<'all' | 'user' | 'admin' | 'superadmin'>(
+    roleParam === 'admin' ? 'admin' : roleParam === 'superadmin' ? 'superadmin' : roleParam === 'user' ? 'user' : 'all'
   );
 
   useEffect(() => {
@@ -67,6 +68,7 @@ function MembersContent() {
         }
         
         setMembers(data.members || []);
+        setCourses(data.courses || []);
         console.log('✅ [FETCH-MEMBERS] Members state updated');
       } else {
         const errorData = await response.text();
@@ -119,8 +121,9 @@ function MembersContent() {
     }
   };
 
-  const handleRoleChange = async (memberId: string, newRole: 'user' | 'admin', memberName: string) => {
-    if (!confirm(`${memberName}の権限を${newRole === 'admin' ? '管理者' : '一般ユーザー'}に変更しますか？`)) {
+  const handleRoleChange = async (memberId: string, newRole: 'user' | 'admin' | 'superadmin', memberName: string) => {
+    const roleLabel = newRole === 'superadmin' ? 'スーパー管理者' : newRole === 'admin' ? '管理者' : '一般ユーザー';
+    if (!confirm(`${memberName}の権限を${roleLabel}に変更しますか？`)) {
       return;
     }
 
@@ -170,15 +173,113 @@ function MembersContent() {
     }
   };
 
+  const handleStatusChange = async (memberId: string, newStatus: 'active' | 'inactive', memberName: string) => {
+    const statusLabel = newStatus === 'active' ? 'アクティブ' : '非アクティブ';
+    if (!confirm(`${memberName}のステータスを${statusLabel}に変更しますか？`)) {
+      return;
+    }
+
+    try {
+      console.log(`🔄 [STATUS-CHANGE] Changing status for ${memberName} (${memberId}) to ${newStatus}`);
+
+      const response = await fetch(`/api/admin/members/${memberId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      console.log(`📡 [STATUS-CHANGE] Response status:`, response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`❌ [STATUS-CHANGE] Error response:`, errorData);
+        throw new Error('ステータス変更に失敗しました');
+      }
+
+      const result = await response.json();
+      console.log(`✅ [STATUS-CHANGE] Success:`, result);
+
+      // Update local state immediately for instant UI feedback
+      setMembers(prevMembers =>
+        prevMembers.map(member =>
+          member.id === memberId
+            ? { ...member, status: newStatus }
+            : member
+        )
+      );
+
+      toast.success(`${memberName}のステータスを変更しました`);
+
+    } catch (error) {
+      console.error('Error changing status:', error);
+      toast.error('ステータス変更に失敗しました');
+    }
+  };
+
+  const handlePlanChange = async (memberId: string, newPlanCode: string, memberName: string) => {
+    const planTitle = newPlanCode === 'none' ? 'なし' : courses.find(c => c.code === newPlanCode)?.title || newPlanCode;
+    if (!confirm(`${memberName}のプランを「${planTitle}」に変更しますか？`)) {
+      return;
+    }
+
+    try {
+      console.log(`🔄 [PLAN-CHANGE] Changing plan for ${memberName} (${memberId}) to ${newPlanCode}`);
+
+      const response = await fetch(`/api/admin/members/${memberId}/plan`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ planCode: newPlanCode }),
+      });
+
+      console.log(`📡 [PLAN-CHANGE] Response status:`, response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`❌ [PLAN-CHANGE] Error response:`, errorData);
+        throw new Error('プラン変更に失敗しました');
+      }
+
+      const result = await response.json();
+      console.log(`✅ [PLAN-CHANGE] Success:`, result);
+
+      // Update local state immediately for instant UI feedback
+      setMembers(prevMembers =>
+        prevMembers.map(member =>
+          member.id === memberId
+            ? {
+                ...member,
+                subscribedPlan: newPlanCode === 'none' ? null : newPlanCode,
+                planTitle: newPlanCode === 'none' ? null : courses.find(c => c.code === newPlanCode)?.title
+              }
+            : member
+        )
+      );
+
+      toast.success(`${memberName}のプランを変更しました`);
+
+    } catch (error) {
+      console.error('Error changing plan:', error);
+      toast.error('プラン変更に失敗しました');
+    }
+  };
+
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (member.profile?.company || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filterStatus === 'all' || member.status === filterStatus;
+
+    const matchesPlan = filterPlan === 'all' ||
+                       (filterPlan === 'none' && !member.subscribedPlan) ||
+                       member.subscribedPlan === filterPlan;
     const matchesRole = filterRole === 'all' || member.role === filterRole;
-    
-    return matchesSearch && matchesFilter && matchesRole;
+
+    return matchesSearch && matchesPlan && matchesRole;
   });
 
   const sortedMembers = filteredMembers.sort((a, b) => b.completionRate - a.completionRate);
@@ -187,9 +288,9 @@ function MembersContent() {
   const statsMembers = roleParam === 'admin' ? members.filter(m => m.role === 'admin') : members;
   const stats = {
     totalMembers: statsMembers.length,
-    activeMembers: statsMembers.filter(m => m.status === 'active').length,
+    subscribedMembers: statsMembers.filter(m => m.subscribedPlan).length,
     averageCompletion: statsMembers.length > 0 ? Math.round(statsMembers.reduce((sum, m) => sum + m.completionRate, 0) / statsMembers.length) : 0,
-    totalWatchTime: statsMembers.reduce((sum, m) => sum + m.totalWatchTime, 0)
+    totalCompletedVideos: statsMembers.reduce((sum, m) => sum + (m.completedVideos || 0), 0)
   };
 
   if (authLoading || loading) {
@@ -235,10 +336,10 @@ function MembersContent() {
 
         <div className="rounded-2xl p-6 bg-gradient-to-br from-green-500 to-green-600 text-white">
           <div className="flex items-center justify-between mb-2">
-            <FaCheckCircle className="text-2xl" />
-            <span className="text-green-100 text-sm">アクティブ</span>
+            <FaBook className="text-2xl" />
+            <span className="text-green-100 text-sm">プラン加入中</span>
           </div>
-          <h3 className="text-3xl font-bold">{stats.activeMembers}</h3>
+          <h3 className="text-3xl font-bold">{stats.subscribedMembers}</h3>
           <p className="text-green-100 text-sm">人</p>
         </div>
 
@@ -253,11 +354,11 @@ function MembersContent() {
 
         <div className="rounded-2xl p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
           <div className="flex items-center justify-between mb-2">
-            <FaClock className="text-2xl" />
-            <span className="text-orange-100 text-sm">総視聴時間</span>
+            <FaVideo className="text-2xl" />
+            <span className="text-orange-100 text-sm">完了済み動画</span>
           </div>
-          <h3 className="text-3xl font-bold">{stats.totalWatchTime}</h3>
-          <p className="text-orange-100 text-sm">分</p>
+          <h3 className="text-3xl font-bold">{stats.totalCompletedVideos}</h3>
+          <p className="text-orange-100 text-sm">本（全員合計）</p>
         </div>
       </div>
 
@@ -275,27 +376,30 @@ function MembersContent() {
             />
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
+              value={filterPlan}
+              onChange={(e) => setFilterPlan(e.target.value)}
               className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-theme-500 focus:border-transparent"
             >
-              <option value="all">全て</option>
-              <option value="active">アクティブ</option>
-              <option value="inactive">非アクティブ</option>
+              <option value="all">全てのプラン</option>
+              <option value="none">未加入</option>
+              {courses.map(course => (
+                <option key={course.code} value={course.code}>{course.title}</option>
+              ))}
             </select>
-            
+
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value as any)}
-              className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+              className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">全ての権限</option>
               <option value="user">一般ユーザー</option>
               <option value="admin">管理者</option>
+              <option value="superadmin">スーパー管理者</option>
             </select>
-            
+
             <button className="px-4 py-3 bg-theme-600 text-white rounded-xl hover:bg-theme-700 transition-colors flex items-center gap-2">
               <FaDownload />
               CSV出力
@@ -346,16 +450,13 @@ function MembersContent() {
                   完了率
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  平均スコア
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   最終アクセス
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   権限
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ステータス
+                  プラン
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   アクション
@@ -448,67 +549,102 @@ function MembersContent() {
                       {member.completionRate}%
                     </span>
                   </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {member.quizAverage}点
-                  </td>
-                  
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(member.lastAccess).toLocaleDateString('ja-JP')}
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      member.role === 'admin' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {member.role === 'admin' ? '管理者' : '一般ユーザー'}
-                    </span>
+                    {(user?.roles?.includes('admin') || user?.roles?.includes('superadmin')) && member.id !== user._id ? (
+                      <select
+                        value={member.role}
+                        onChange={(e) => {
+                          const newRole = e.target.value as 'user' | 'admin' | 'superadmin';
+                          if (newRole !== member.role) {
+                            handleRoleChange(member.id, newRole, member.name);
+                          }
+                        }}
+                        className={`cursor-pointer px-2 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-offset-1 ${
+                          member.role === 'superadmin'
+                            ? 'bg-red-100 text-red-800 focus:ring-red-500'
+                            : member.role === 'admin'
+                            ? 'bg-purple-100 text-purple-800 focus:ring-purple-500'
+                            : 'bg-blue-100 text-blue-800 focus:ring-blue-500'
+                        }`}
+                        title="クリックして権限を変更"
+                      >
+                        <option value="user">一般ユーザー</option>
+                        <option value="admin">管理者</option>
+                        {user?.roles?.includes('superadmin') && (
+                          <option value="superadmin">スーパー管理者</option>
+                        )}
+                      </select>
+                    ) : (
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        member.role === 'superadmin'
+                          ? 'bg-red-100 text-red-800'
+                          : member.role === 'admin'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {member.role === 'superadmin' ? 'スーパー管理者' : member.role === 'admin' ? '管理者' : '一般ユーザー'}
+                      </span>
+                    )}
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      member.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {member.status === 'active' ? 'アクティブ' : '非アクティブ'}
-                    </span>
+                    {(user?.roles?.includes('admin') || user?.roles?.includes('superadmin')) && member.id !== user._id ? (
+                      <select
+                        value={member.subscribedPlan || 'none'}
+                        onChange={(e) => {
+                          const newPlan = e.target.value;
+                          if (newPlan !== (member.subscribedPlan || 'none')) {
+                            handlePlanChange(member.id, newPlan, member.name);
+                          }
+                        }}
+                        className={`cursor-pointer px-2 py-1 text-xs font-semibold rounded-lg border-0 focus:ring-2 focus:ring-offset-1 ${
+                          member.subscribedPlan
+                            ? 'bg-green-100 text-green-800 focus:ring-green-500'
+                            : 'bg-gray-100 text-gray-800 focus:ring-gray-500'
+                        }`}
+                        title="クリックしてプランを変更"
+                      >
+                        <option value="none">未加入</option>
+                        {courses.map(course => (
+                          <option key={course.code} value={course.code}>{course.title}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-lg ${
+                        member.subscribedPlan
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {member.planTitle || '未加入'}
+                      </span>
+                    )}
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <button className="text-theme-600 hover:text-theme-900 p-1" title="詳細表示">
                         <FaEye />
                       </button>
                       <button className="text-gray-600 hover:text-gray-900 p-1" title="編集">
                         <FaEdit />
                       </button>
-                      {member.role === 'admin' ? (
-                        <button 
-                          onClick={() => handleRoleChange(member.id, 'user', member.name)}
-                          className="text-orange-600 hover:text-orange-900 p-1" 
-                          title="管理者権限を削除"
+                      {/* Delete button - admin can delete users, superadmin can delete anyone except themselves */}
+                      {(user?.roles?.includes('admin') || user?.roles?.includes('superadmin')) &&
+                       member.id !== user._id &&
+                       member.role !== 'superadmin' && (
+                        <button
+                          onClick={() => handleDeleteMember(member.id, member.name)}
+                          className="text-red-600 hover:text-red-900 p-1"
+                          title="メンバーを削除"
                         >
-                          <FaUserCog />
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => handleRoleChange(member.id, 'admin', member.name)}
-                          className="text-purple-600 hover:text-purple-900 p-1" 
-                          title="管理者権限を付与"
-                        >
-                          <FaUserShield />
+                          <FaTrash />
                         </button>
                       )}
-                      <button 
-                        onClick={() => handleDeleteMember(member.id, member.name)}
-                        className="text-red-600 hover:text-red-900 p-1" 
-                        title="メンバーを削除"
-                      >
-                        <FaTrash />
-                      </button>
                     </div>
                   </td>
                 </tr>

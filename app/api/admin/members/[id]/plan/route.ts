@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToMongoDB from '@/lib/mongodb';
 import { verifyAdminAuthSimple } from '@/lib/auth-admin-simple';
 import mongoose from 'mongoose';
+import Course from '@/models/Course';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,34 +24,18 @@ export async function PATCH(
     const isSuperAdmin = currentUser.roles?.includes('superadmin');
     const isAdmin = currentUser.roles?.includes('admin');
 
-    // Must be at least admin to change roles
+    // Must be at least admin to change plan
     if (!isAdmin && !isSuperAdmin) {
       return NextResponse.json(
-        { error: 'Admin access required to change roles' },
+        { error: 'Admin access required' },
         { status: 403 }
       );
     }
 
-    const { role } = await request.json();
-
-    if (!['user', 'admin', 'superadmin'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Invalid role' },
-        { status: 400 }
-      );
-    }
-
-    // Only superadmin can grant superadmin role
-    if (role === 'superadmin' && !isSuperAdmin) {
-      return NextResponse.json(
-        { error: 'Only superadmin can grant superadmin role' },
-        { status: 403 }
-      );
-    }
+    const { planCode } = await request.json();
 
     await connectToMongoDB();
 
-    // Use raw MongoDB to bypass schema validation cache
     const db = mongoose.connection.db;
     const usersCollection = db.collection('users');
 
@@ -65,30 +50,37 @@ export async function PATCH(
       );
     }
 
-    // Prevent removing own superadmin role
-    if (targetUser._id.toString() === currentUser._id.toString() &&
-        currentUser.roles?.includes('superadmin') && role !== 'superadmin') {
-      return NextResponse.json(
-        { error: 'Cannot remove your own superadmin role' },
-        { status: 400 }
-      );
+    // Validate plan code if provided
+    let planStartDate = null;
+    let planEndDate = null;
+
+    if (planCode && planCode !== 'none') {
+      const course = await Course.findOne({ code: planCode });
+      if (!course) {
+        return NextResponse.json(
+          { error: 'Invalid plan code' },
+          { status: 400 }
+        );
+      }
+
+      // Set plan dates
+      planStartDate = new Date();
+      if (course.durationDays > 0) {
+        planEndDate = new Date();
+        planEndDate.setDate(planEndDate.getDate() + course.durationDays);
+      }
     }
 
-    // Build new roles array
-    let newRoles = targetUser.roles?.filter((r: string) =>
-      !['admin', 'superadmin'].includes(r)
-    ) || ['student'];
-
-    if (role === 'superadmin') {
-      newRoles = [...new Set([...newRoles, 'admin', 'superadmin'])];
-    } else if (role === 'admin') {
-      newRoles = [...new Set([...newRoles, 'admin'])];
-    }
-    // 'user' means no admin roles
+    // Update user's plan
+    const updateData: any = {
+      subscribedPlan: planCode === 'none' ? null : planCode,
+      planStartDate: planCode === 'none' ? null : planStartDate,
+      planEndDate: planCode === 'none' ? null : planEndDate
+    };
 
     await usersCollection.updateOne(
       { _id: new mongoose.Types.ObjectId(params.id) },
-      { $set: { roles: newRoles } }
+      { $set: updateData }
     );
 
     const updatedUser = await usersCollection.findOne({
@@ -101,13 +93,13 @@ export async function PATCH(
         id: updatedUser?._id.toString(),
         name: updatedUser?.name,
         email: updatedUser?.email,
-        roles: updatedUser?.roles,
-        role: updatedUser?.roles?.includes('superadmin') ? 'superadmin' :
-              updatedUser?.roles?.includes('admin') ? 'admin' : 'user'
+        subscribedPlan: updatedUser?.subscribedPlan,
+        planStartDate: updatedUser?.planStartDate,
+        planEndDate: updatedUser?.planEndDate
       }
     });
   } catch (error) {
-    console.error('Error updating user role:', error);
+    console.error('Error updating user plan:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

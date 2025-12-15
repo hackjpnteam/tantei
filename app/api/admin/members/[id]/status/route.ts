@@ -23,34 +23,25 @@ export async function PATCH(
     const isSuperAdmin = currentUser.roles?.includes('superadmin');
     const isAdmin = currentUser.roles?.includes('admin');
 
-    // Must be at least admin to change roles
+    // Must be at least admin to change status
     if (!isAdmin && !isSuperAdmin) {
       return NextResponse.json(
-        { error: 'Admin access required to change roles' },
+        { error: 'Admin access required' },
         { status: 403 }
       );
     }
 
-    const { role } = await request.json();
+    const { status } = await request.json();
 
-    if (!['user', 'admin', 'superadmin'].includes(role)) {
+    if (!['active', 'inactive'].includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid role' },
+        { error: 'Invalid status' },
         { status: 400 }
-      );
-    }
-
-    // Only superadmin can grant superadmin role
-    if (role === 'superadmin' && !isSuperAdmin) {
-      return NextResponse.json(
-        { error: 'Only superadmin can grant superadmin role' },
-        { status: 403 }
       );
     }
 
     await connectToMongoDB();
 
-    // Use raw MongoDB to bypass schema validation cache
     const db = mongoose.connection.db;
     const usersCollection = db.collection('users');
 
@@ -65,30 +56,26 @@ export async function PATCH(
       );
     }
 
-    // Prevent removing own superadmin role
-    if (targetUser._id.toString() === currentUser._id.toString() &&
-        currentUser.roles?.includes('superadmin') && role !== 'superadmin') {
+    // Prevent changing own status
+    if (targetUser._id.toString() === currentUser._id.toString()) {
       return NextResponse.json(
-        { error: 'Cannot remove your own superadmin role' },
+        { error: 'Cannot change your own status' },
         { status: 400 }
       );
     }
 
-    // Build new roles array
-    let newRoles = targetUser.roles?.filter((r: string) =>
-      !['admin', 'superadmin'].includes(r)
-    ) || ['student'];
-
-    if (role === 'superadmin') {
-      newRoles = [...new Set([...newRoles, 'admin', 'superadmin'])];
-    } else if (role === 'admin') {
-      newRoles = [...new Set([...newRoles, 'admin'])];
+    // Only superadmin can change admin/superadmin status
+    const targetIsAdmin = targetUser.roles?.includes('admin') || targetUser.roles?.includes('superadmin');
+    if (targetIsAdmin && !isSuperAdmin) {
+      return NextResponse.json(
+        { error: 'Only superadmin can change admin user status' },
+        { status: 403 }
+      );
     }
-    // 'user' means no admin roles
 
     await usersCollection.updateOne(
       { _id: new mongoose.Types.ObjectId(params.id) },
-      { $set: { roles: newRoles } }
+      { $set: { status: status } }
     );
 
     const updatedUser = await usersCollection.findOne({
@@ -101,13 +88,11 @@ export async function PATCH(
         id: updatedUser?._id.toString(),
         name: updatedUser?.name,
         email: updatedUser?.email,
-        roles: updatedUser?.roles,
-        role: updatedUser?.roles?.includes('superadmin') ? 'superadmin' :
-              updatedUser?.roles?.includes('admin') ? 'admin' : 'user'
+        status: updatedUser?.status || 'active'
       }
     });
   } catch (error) {
-    console.error('Error updating user role:', error);
+    console.error('Error updating user status:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

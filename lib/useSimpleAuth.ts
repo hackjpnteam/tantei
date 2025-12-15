@@ -20,10 +20,14 @@ export function useSimpleAuth(requireAdmin: boolean = false) {
           return;
         }
 
-        // Check admin requirement
-        if (requireAdmin && sessionData.user.role !== 'admin') {
-          router.push('/'); // Redirect non-admin users to home
-          return;
+        // Check admin requirement - allow both admin and superadmin roles
+        if (requireAdmin) {
+          const roles = sessionData.user.roles || [];
+          const hasAdminAccess = roles.includes('admin') || roles.includes('superadmin');
+          if (!hasAdminAccess) {
+            router.push('/'); // Redirect non-admin users to home
+            return;
+          }
         }
 
         setUser(sessionData.user);

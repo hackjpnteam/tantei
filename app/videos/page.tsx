@@ -1,37 +1,61 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaFilter } from 'react-icons/fa';
+
+interface Course {
+  _id: string;
+  code: string;
+  title: string;
+  description: string;
+  priceJPY: number;
+  durationDays: number;
+}
 
 export default function VideosPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCourse = searchParams.get('course') || '';
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState(initialCourse);
   const [videos, setVideos] = useState<any[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch videos without authentication requirement for now
+    fetchCourses();
+  }, []);
+
+  useEffect(() => {
     fetchVideos();
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCourse]);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('/api/courses');
+      const data = await response.json();
+      setCourses(data.courses || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
 
   const fetchVideos = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory) params.append('category', selectedCategory);
-      
+      if (selectedCourse) params.append('course', selectedCourse);
+
       const response = await fetch(`/api/videos?${params}`, {
         credentials: 'include'
       });
       const data = await response.json();
-      
+
       setVideos(data.videos || []);
-      setCategories(data.categories || []);
     } catch (error) {
       console.error('Error fetching videos:', error);
     } finally {
@@ -39,120 +63,171 @@ export default function VideosPage() {
     }
   };
 
-  // Remove authentication checks temporarily
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('ja-JP').format(price);
+  };
+
+  const formatDuration = (days: number) => {
+    if (days === 0) return '随時';
+    if (days >= 30) {
+      const months = Math.floor(days / 30);
+      return `${months}ヶ月`;
+    }
+    return `${days}日`;
+  };
+
+  const selectedCourseData = courses.find(c => c._id === selectedCourse);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">コース一覧</h1>
-      <div className="mb-8 bg-blue-50 rounded-lg p-6">
-        <h2 className="text-2xl font-bold mb-4">コース体系</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-lg p-6 shadow-md">
-            <h3 className="text-xl font-bold mb-3">基礎コース</h3>
-            <p className="text-gray-600 mb-4">法律・倫理・聞き込み・尾行・情報収集の基礎</p>
-            <div className="text-sm text-gray-500 mb-2">期間: 2ヶ月</div>
-            <div className="text-2xl font-bold text-blue-600">99,000円(税込)</div>
-          </div>
-          <div className="bg-white rounded-lg p-6 shadow-md">
-            <h3 className="text-xl font-bold mb-3">プロコース</h3>
-            <p className="text-gray-600 mb-4">実地OJT・報告書・案件受託訓練</p>
-            <div className="text-sm text-gray-500 mb-2">期間: 3ヶ月</div>
-            <div className="text-2xl font-bold text-blue-600">198,000円(税込)</div>
-          </div>
-          <div className="bg-white rounded-lg p-6 shadow-md">
-            <h3 className="text-xl font-bold mb-3">オプション（上級）</h3>
-            <p className="text-gray-600 mb-4">ドローン/車両追跡/AI解析ツール</p>
-            <div className="text-sm text-gray-500 mb-2">期間: 随時</div>
-            <div className="text-2xl font-bold text-blue-600">33,000円〜</div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">動画一覧</h1>
+          <Link
+            href="/courses"
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            コース詳細を見る →
+          </Link>
+        </div>
+
+        {/* Course Cards */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">コースで絞り込み</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <button
+              onClick={() => setSelectedCourse('')}
+              className={`p-4 rounded-xl text-left transition-all ${
+                selectedCourse === ''
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white hover:bg-blue-50 border border-gray-200'
+              }`}
+            >
+              <div className="font-bold mb-1">すべての動画</div>
+              <div className={`text-sm ${selectedCourse === '' ? 'text-blue-100' : 'text-gray-500'}`}>
+                全コースの動画を表示
+              </div>
+            </button>
+
+            {courses.map((course) => (
+              <button
+                key={course._id}
+                onClick={() => setSelectedCourse(course._id)}
+                className={`p-4 rounded-xl text-left transition-all ${
+                  selectedCourse === course._id
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-white hover:bg-blue-50 border border-gray-200'
+                }`}
+              >
+                <div className="font-bold mb-1">{course.title}</div>
+                <div className={`text-sm ${selectedCourse === course._id ? 'text-blue-100' : 'text-gray-500'}`}>
+                  {formatPrice(course.priceJPY)}円 / {formatDuration(course.durationDays)}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
-        <div className="text-sm text-gray-600">
-          <h4 className="font-semibold mb-2">特記事項:</h4>
-          <ul className="list-disc list-inside space-y-1">
-            <li>オンライン動画＋現場OJTのハイブリッド</li>
-            <li>講師は現役探偵/警察OB/法務の専門家</li>
-            <li>修了後にDCD-Basic / DCD-Pro認定受験可</li>
-          </ul>
-        </div>
-      </div>
-      
-      <div className="mb-8 space-y-4">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
+
+        {/* Selected Course Info */}
+        {selectedCourseData && (
+          <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 text-white">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm mb-2">
+                  {selectedCourseData.code}
+                </span>
+                <h2 className="text-2xl font-bold mb-2">{selectedCourseData.title}</h2>
+                <p className="text-blue-100">{selectedCourseData.description}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">
+                  {selectedCourseData.priceJPY === 33000 ? (
+                    <span>{formatPrice(selectedCourseData.priceJPY)}円〜</span>
+                  ) : (
+                    <span>{formatPrice(selectedCourseData.priceJPY)}円</span>
+                  )}
+                </div>
+                <div className="text-blue-100 text-sm">(税込)</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="コース名やタグで検索"
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="動画を検索..."
+              className="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             />
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">すべてのカテゴリ</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
         </div>
-        
-        <div className="flex flex-wrap gap-2">
-          {videos.flatMap(video => video.tags || []).filter((tag, index, self) => self.indexOf(tag) === index).map(tag => (
-            <button
-              key={tag}
-              onClick={() => setSearchTerm(tag)}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        {/* Results Count */}
+        <div className="mb-4 text-sm text-gray-600">
+          {videos.length}件の動画が見つかりました
         </div>
-      ) : (
-        <>
-          <div className="mb-4 text-sm text-gray-600">
-            {videos.length}件のコースが見つかりました
+
+        {/* Videos Grid */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-
+        ) : videos.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {videos.map((video) => (
-          <Link key={video._id} href={`/videos/${video._id}`}>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="aspect-video bg-gray-200 flex items-center justify-center">
-                <img 
-                  src={video.thumbnailUrl} 
-                  alt={video.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2 line-clamp-2">{video.title}</h3>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-3">{video.description}</p>
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{video.instructor.name}</span>
-                  <span>{Math.floor(video.durationSec / 60)}分</span>
+              <Link key={video._id} href={`/videos/${video._id}`}>
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:-translate-y-1">
+                  <div className="aspect-video bg-gray-200 relative overflow-hidden">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
+                        <span className="text-4xl">🎬</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{video.title}</h3>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{video.description}</p>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">{video.instructor?.name || '講師未設定'}</span>
+                      <span className="text-gray-400">{Math.floor((video.durationSec || 0) / 60)}分</span>
+                    </div>
+                    {video.course && (
+                      <div className="mt-3">
+                        <span className="inline-block px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+                          {courses.find(c => c._id === video.course)?.title || 'コース'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-2">
-                  <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                    {video.category}
-                  </span>
-                </div>
-              </div>
-            </div>
-            </Link>
-          ))}
-        </div>
-        </>
-      )}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">動画が見つかりませんでした</p>
+            {selectedCourse && (
+              <button
+                onClick={() => setSelectedCourse('')}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                すべての動画を表示
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

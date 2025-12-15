@@ -14,6 +14,7 @@ export interface IVideo extends Document {
   title: string;
   description: string;
   category: string;
+  course?: mongoose.Types.ObjectId;
   durationSec: number;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   thumbnailUrl?: string;
@@ -41,6 +42,11 @@ const VideoSchema = new Schema<IVideo>({
     type: String,
     required: true,
     trim: true
+  },
+  course: {
+    type: Schema.Types.ObjectId,
+    ref: 'Course',
+    default: null
   },
   durationSec: {
     type: Number,
@@ -99,6 +105,7 @@ const VideoSchema = new Schema<IVideo>({
 VideoSchema.index({ 'instructor._id': 1 });
 VideoSchema.index({ 'instructor.name': 1 });
 VideoSchema.index({ category: 1 });
+VideoSchema.index({ course: 1 });
 VideoSchema.index({ difficulty: 1 });
 VideoSchema.index({ createdAt: -1 });
 VideoSchema.index({ 'stats.views': -1 });

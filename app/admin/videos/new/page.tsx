@@ -13,24 +13,32 @@ interface Instructor {
   avatarUrl?: string;
 }
 
+interface Course {
+  _id: string;
+  code: string;
+  title: string;
+}
+
 export default function NewVideoPage() {
   const router = useRouter();
   const { user, loading } = useSimpleAuth(true); // Require admin
   const [saving, setSaving] = useState(false);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     sourceUrl: '',
-    instructor: ''
+    instructor: '',
+    course: ''
   });
 
   useEffect(() => {
     if (user) {
       fetchInstructors();
+      fetchCourses();
     }
   }, [user]);
-
 
   const fetchInstructors = async () => {
     try {
@@ -39,6 +47,16 @@ export default function NewVideoPage() {
       setInstructors(data.instructors || []);
     } catch (error) {
       console.error('Error fetching instructors:', error);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('/api/courses');
+      const data = await response.json();
+      setCourses(data.courses || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
     }
   };
 
@@ -62,7 +80,8 @@ export default function NewVideoPage() {
           _id: selectedInstructor._id,
           name: selectedInstructor.name,
           avatarUrl: selectedInstructor.avatarUrl || 'https://via.placeholder.com/150'
-        }
+        },
+        course: formData.course || null
       };
 
       console.log('Sending video data:', videoData);
@@ -180,6 +199,25 @@ export default function NewVideoPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
+            コース
+          </label>
+          <select
+            name="course"
+            value={formData.course}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">コースなし（単体動画）</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             動画URL <span className="text-red-500">*</span>
           </label>
           <input
@@ -188,7 +226,7 @@ export default function NewVideoPage() {
             value={formData.sourceUrl}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="例: https://example.com/videos/video.mp4"
           />
         </div>

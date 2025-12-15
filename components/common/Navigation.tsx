@@ -53,10 +53,9 @@ export default function Navigation() {
 
   const navItems = [
     { href: '/', label: 'ホーム', icon: FaHome },
+    { href: '/courses', label: 'コース', icon: FaPlay },
+    { href: '/videos', label: '動画', icon: FaPlay },
     { href: '/instructors', label: '講師', icon: FaUsers },
-    { href: '/videos', label: 'コース', icon: FaPlay },
-    { href: '/certification', label: '認定制度', icon: FaChartBar },
-    { href: '/contact', label: 'お問い合わせ', icon: FaUserFriends },
   ] as Array<{
     href: string;
     label: string;

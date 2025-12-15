@@ -279,7 +279,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = (token.userId as string) || token.sub || '';
         session.user.email = (token.email as string) || '';
         session.user.name = (token.name as string) || '';
-        session.(user as any).roles?.includes('admin') ? 'admin' : 'user' = (token.role as string) || 'user';
+        session.user.role = (token.role as string) || 'user';
         
         if (token.picture) {
           session.user.image = token.picture as string;
@@ -289,7 +289,7 @@ export const authConfig: NextAuthConfig = {
           id: session.user.id,
           email: session.user.email,
           name: session.user.name,
-          role: session.(user as any).roles?.includes('admin') ? 'admin' : 'user',
+          role: session.user.role,
           image: session.user.image
         });
       } else {

@@ -385,7 +385,7 @@ export default function MyPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">マイページ</h1>
           <p className="text-gray-600">あなたの学習状況を確認できます</p>
         </div>
-        {user.role === 'admin' && (
+        {(user.roles?.includes('admin') || user.roles?.includes('superadmin')) && (
           <Link
             href="/admin"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg"
@@ -503,13 +503,26 @@ export default function MyPage() {
                 >
                   <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-all group-hover:shadow-md">
                     <div className="aspect-video bg-gray-200 rounded-lg mb-3 overflow-hidden relative">
-                      <div className="flex items-center justify-center h-full">
-                        <FaBookmark className="text-4xl text-blue-500" />
-                      </div>
+                      {item.thumbnailUrl ? (
+                        <Image
+                          src={item.thumbnailUrl}
+                          alt={item.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <FaBookmark className="text-4xl text-blue-500" />
+                        </div>
+                      )}
                     </div>
                     <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
                       {item.title || '動画タイトル'}
                     </h3>
+                    <p className="text-xs text-gray-600 mb-2">
+                      {item.instructor?.name || '講師名'}
+                    </p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                         保存済み
@@ -607,54 +620,6 @@ export default function MyPage() {
               </div>
             )
         )}
-      </div>
-
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-6">
-            <FaVideo className="text-theme-600 text-xl" />
-            <h2 className="text-xl font-bold text-gray-900">視聴完了動画</h2>
-          </div>
-          
-          {completedVideoDetails.length > 0 ? (
-              <div className="space-y-4">
-                {completedVideoDetails.map((video, index) => (
-                  <div key={video.id || video._id || `video-${index}`} className="flex items-center justify-between p-4 bg-green-50 rounded-xl">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {video.title}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        講師: {video.instructor?.name || '講師名'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        完了日: {new Date(video.completedAt).toLocaleDateString('ja-JP')}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/videos/${video.id || video._id}`}
-                        className="inline-flex items-center gap-2 text-sm bg-theme-600 text-white px-4 py-2 rounded-lg hover:bg-theme-700 transition-all"
-                      >
-                        <FaPlay className="text-xs" />
-                        再視聴
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <FaVideo className="text-4xl text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">まだ視聴完了した動画がありません</p>
-                <Link
-                  href="/videos"
-                  className="inline-flex items-center gap-2 bg-theme-600 text-white px-4 py-2 rounded-xl hover:bg-theme-700 transition-all"
-                >
-                  <FaPlay />
-                  動画を見る
-                </Link>
-              </div>
-            )}
       </div>
 
       {/* プロフィール編集モーダル */}

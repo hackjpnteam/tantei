@@ -1,50 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { verifyAuthSimple } from '@/lib/auth-simple';
 import connectToMongoDB from '@/lib/mongodb';
 import SavedVideo from '@/models/SavedVideo';
 import Video from '@/models/Video';
-import User from '@/models/User';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session || !session.user?.email) {
+    const authResult = await verifyAuthSimple(request);
+
+    if (!authResult.success || !authResult.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
+    const user = authResult.user;
+
     await connectToMongoDB();
-    
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const savedVideos = await SavedVideo.find({ user: user._id })
       .populate({
         path: 'video',
-        select: 'title description thumbnailUrl instructor createdAt stats',
-        populate: {
-          path: 'instructor',
-          select: 'name title avatarUrl'
-        }
+        select: 'title description thumbnailUrl instructor createdAt stats'
       })
       .sort({ savedAt: -1 })
       .lean();
 
-    const formattedVideos = savedVideos.map(sv => ({
-      ...sv.video,
-      id: sv.video._id.toString(),
-      savedAt: sv.savedAt
-    }));
+    // Filter out entries where video is null (deleted videos)
+    const validSavedVideos = savedVideos.filter(sv => sv.video != null);
+
+    const formattedVideos = validSavedVideos.map(sv => {
+      const video = sv.video as any;
+      return {
+        _id: video._id.toString(),
+        id: video._id.toString(),
+        title: video.title,
+        description: video.description,
+        thumbnailUrl: video.thumbnailUrl,
+        instructor: video.instructor, // Already embedded object
+        savedAt: sv.savedAt
+      };
+    });
 
     return NextResponse.json({
       savedVideos: formattedVideos
@@ -60,15 +59,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session || !session.user?.email) {
+    const authResult = await verifyAuthSimple(request);
+
+    if (!authResult.success || !authResult.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
+    const user = authResult.user;
+
     const { videoId } = await request.json();
 
     if (!videoId) {
@@ -79,14 +80,6 @@ export async function POST(request: NextRequest) {
     }
 
     await connectToMongoDB();
-    
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
     const video = await Video.findById(videoId);
     if (!video) {
@@ -108,19 +101,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const savedVideo = await SavedVideo.create({
+    await SavedVideo.create({
       user: user._id,
       video: videoId,
       savedAt: new Date()
     });
 
+    // Fetch updated list of saved videos
+    const updatedSavedVideos = await SavedVideo.find({ user: user._id })
+      .populate({
+        path: 'video',
+        select: 'title description thumbnailUrl instructor createdAt stats'
+      })
+      .sort({ savedAt: -1 })
+      .lean();
+
+    const validSavedVideos = updatedSavedVideos.filter(sv => sv.video != null);
+    const formattedVideos = validSavedVideos.map(sv => {
+      const video = sv.video as any;
+      return {
+        _id: video._id.toString(),
+        id: video._id.toString(),
+        title: video.title,
+        description: video.description,
+        thumbnailUrl: video.thumbnailUrl,
+        instructor: video.instructor,
+        savedAt: sv.savedAt
+      };
+    });
+
     return NextResponse.json({
       message: 'Video saved successfully',
-      savedVideo: {
-        id: (savedVideo._id as any).toString(),
-        videoId: videoId,
-        savedAt: savedVideo.savedAt
-      }
+      savedVideos: formattedVideos
     });
   } catch (error) {
     console.error('Error saving video:', error);
@@ -133,15 +145,17 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session || !session.user?.email) {
+    const authResult = await verifyAuthSimple(request);
+
+    if (!authResult.success || !authResult.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-    
+
+    const user = authResult.user;
+
     const { searchParams } = new URL(request.url);
     const videoId = searchParams.get('videoId');
 
@@ -153,18 +167,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     await connectToMongoDB();
-    
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
 
-    const result = await SavedVideo.deleteOne({ 
-      user: user._id, 
-      video: videoId 
+    const result = await SavedVideo.deleteOne({
+      user: user._id,
+      video: videoId
     });
 
     if (result.deletedCount === 0) {
@@ -174,8 +180,32 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Fetch updated list of saved videos
+    const updatedSavedVideos = await SavedVideo.find({ user: user._id })
+      .populate({
+        path: 'video',
+        select: 'title description thumbnailUrl instructor createdAt stats'
+      })
+      .sort({ savedAt: -1 })
+      .lean();
+
+    const validSavedVideos = updatedSavedVideos.filter(sv => sv.video != null);
+    const formattedVideos = validSavedVideos.map(sv => {
+      const video = sv.video as any;
+      return {
+        _id: video._id.toString(),
+        id: video._id.toString(),
+        title: video.title,
+        description: video.description,
+        thumbnailUrl: video.thumbnailUrl,
+        instructor: video.instructor,
+        savedAt: sv.savedAt
+      };
+    });
+
     return NextResponse.json({
-      message: 'Video removed from saved list'
+      message: 'Video removed from saved list',
+      savedVideos: formattedVideos
     });
   } catch (error) {
     console.error('Error removing saved video:', error);

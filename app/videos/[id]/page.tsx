@@ -450,19 +450,6 @@ export default function VideoPage() {
             </div>
           )}
 
-          {/* 関連コンテンツ */}
-          <div className="rounded-2xl p-6 shadow bg-white">
-            <h3 className="font-bold text-gray-900 mb-4">次のステップ</h3>
-            <div className="space-y-3">
-              <Link
-                href="/videos"
-                className="block p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <p className="font-medium text-gray-900">他の動画を見る</p>
-                <p className="text-sm text-gray-600">さらに学習を進めましょう</p>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
       

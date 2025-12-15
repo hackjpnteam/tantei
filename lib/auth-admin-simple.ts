@@ -92,10 +92,10 @@ export async function verifyAdminAuthSimple(request?: NextRequest): Promise<Admi
     
     console.log('🔍 [AUTH-SIMPLE] User lookup result:', {
       found: !!currentUser,
-      hasRole: currentUser?.role,
-      isAdmin: currentUser?.role === 'admin'
+      roles: currentUser?.roles,
+      isAdmin: currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('superadmin')
     });
-    
+
     if (!currentUser) {
       console.log('❌ [AUTH-SIMPLE] User not found in database');
       return {
@@ -104,9 +104,11 @@ export async function verifyAdminAuthSimple(request?: NextRequest): Promise<Admi
         status: 404
       };
     }
-    
-    if (currentUser.role !== 'admin') {
-      console.log('❌ [AUTH-SIMPLE] User is not admin:', currentUser.role);
+
+    // Check if user has admin or superadmin role
+    const hasAdminAccess = currentUser.roles?.includes('admin') || currentUser.roles?.includes('superadmin');
+    if (!hasAdminAccess) {
+      console.log('❌ [AUTH-SIMPLE] User is not admin:', currentUser.roles);
       return {
         success: false,
         error: 'Admin access required',

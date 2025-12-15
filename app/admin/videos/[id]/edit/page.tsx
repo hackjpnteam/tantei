@@ -12,11 +12,18 @@ interface Instructor {
   name: string;
 }
 
+interface Course {
+  _id: string;
+  code: string;
+  title: string;
+}
+
 export default function EditVideoPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user, loading } = useSimpleAuth(true); // Require admin
   const [saving, setSaving] = useState(false);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -26,6 +33,7 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
     thumbnailUrl: '',
     videoUrl: '',
     instructor: '',
+    course: '',
     stats: {
       views: 0,
       avgWatchRate: 0
@@ -35,10 +43,10 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (user) {
       fetchInstructors();
+      fetchCourses();
       fetchVideo();
     }
   }, [user]);
-
 
   const fetchInstructors = async () => {
     try {
@@ -47,6 +55,16 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
       setInstructors(data.instructors || []);
     } catch (error) {
       console.error('Error fetching instructors:', error);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('/api/courses');
+      const data = await response.json();
+      setCourses(data.courses || []);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
     }
   };
 
@@ -59,7 +77,8 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
       const data = await response.json();
       setFormData({
         ...data,
-        instructor: data.instructor?._id || data.instructor || ''
+        instructor: data.instructor?._id || data.instructor || '',
+        course: data.course?._id || data.course || ''
       });
     } catch (error) {
       console.error('Error fetching video:', error);
@@ -228,7 +247,7 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
             value={formData.instructor}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-theme-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">選択してください</option>
             {instructors.map((instructor) => (
@@ -239,6 +258,24 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
           </select>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            コース
+          </label>
+          <select
+            name="course"
+            value={formData.course}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">コースなし（単体動画）</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
